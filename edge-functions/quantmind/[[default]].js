@@ -66,22 +66,6 @@ export async function onRequest(context) {
     newHeaders.delete('keep-alive');
     newHeaders.delete('transfer-encoding');
 
-    // Handle HTML content for Hilla applications
-    const contentType = response.headers.get('content-type') || '';
-    console.log(`Content-Type: ${contentType}`);
-    
-    if (contentType.includes('text/html')) {
-      const htmlContent = await response.text();
-      console.log(`HTML length: ${htmlContent.length}, path: ${pathname}`);
-      const modifiedHtml = rewriteHtmlForQuantmind(htmlContent);
-
-      return new Response(modifiedHtml, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: newHeaders
-      });
-    }
-
     // For non-HTML content, return as-is
     return new Response(response.body, {
       status: response.status,
