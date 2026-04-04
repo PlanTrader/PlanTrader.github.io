@@ -2,15 +2,19 @@
  * EdgeOne Edge Function - Quantmind Route Proxy Handler
  *
  * This function proxies /quantmind/* requests to a specific backend service.
- * All paths starting with /quantmind are forwarded to the quantmind backend.
+ * Supports Hilla/Vaadin applications with proper path rewriting.
  *
  * Important notes:
  * - This function handles all paths starting with /quantmind/*
  * - Requests are forwarded to the quantmind backend service on CNB
+ * - Rewrites HTML content to fix asset paths for Hilla applications
  */
 
 // Backend service URL for quantmind
 const BACKEND_URL = 'https://9xz2tsffxk-8080.cnb.run';
+
+// Paths that need path rewriting in HTML
+const ASSET_PATHS = ['/VAADIN/', '/icons/', '/sw.js', '/manifest.webmanifest'];
 
 export async function onRequest(context) {
   const { request } = context;
@@ -35,6 +39,9 @@ export async function onRequest(context) {
     requestHeaders.delete('connection');
     requestHeaders.delete('keep-alive');
     requestHeaders.delete('transfer-encoding');
+
+    // Upgrade insecure requests for HTTPS
+    requestHeaders.delete('upgrade-insecure-requests');
 
     // Create the proxied request
     const proxyRequest = new Request(backendUrl, {
@@ -62,6 +69,20 @@ export async function onRequest(context) {
     newHeaders.delete('keep-alive');
     newHeaders.delete('transfer-encoding');
 
+    // Handle HTML content for Hilla applications
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      const htmlContent = await response.text();
+      const modifiedHtml = rewriteHtmlForQuantmind(htmlContent);
+
+      return new Response(modifiedHtml, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders
+      });
+    }
+
+    // For non-HTML content, return as-is
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
@@ -79,4 +100,48 @@ export async function onRequest(context) {
       }
     });
   }
+}
+
+/**
+ * Rewrite HTML content to fix asset paths for Quantmind/Hilla
+ * @param {string} html - Original HTML content
+ * @returns {string} - Modified HTML with corrected paths
+ */
+function rewriteHtmlForQuantmind(html) {
+  let result = html;
+
+  // Rewrite <base href="."> to <base href="/quantmind/">
+  result = result.replace(
+    /<base\s+href="\."\s*\/?>/i,
+    '<base href="/quantmind/">'
+  );
+
+  // Rewrite asset paths to include /quantmind/ prefix
+  // Handle src="/VAADIN/..." -> src="/quantmind/VAADIN/..."
+  result = result.replace(
+    /<(link|script|img)\s+[^>]*(?:src|href)="\/(VAADIN|icons)[^"]*"[^>]*>/gi,
+    (match) => {
+      return match.replace(/"\/(VAADIN|icons)/g, '"/quantmind/$1');
+    }
+  );
+
+  // Handle manifest webmanifest
+  result = result.replace(
+    /<link[^>]*rel="manifest"[^>]*href="manifest\.webmanifest"[^>]*>/gi,
+    '<link rel="manifest" href="/quantmind/manifest.webmanifest">'
+  );
+
+  // Handle service worker registration
+  result = result.replace(
+    /navigator\.serviceWorker\.register\('sw\.js'\)/gi,
+    "navigator.serviceWorker.register('/quantmind/sw.js')"
+  );
+
+  // Handle Vaadin dev tools WebSocket URL
+  result = result.replace(
+    /<vaadin-dev-tools\s+url="\.\/VAADIN\/push"/gi,
+    '<vaadin-dev-tools url="/quantmind/VAADIN/push"'
+  );
+
+  return result;
 }
