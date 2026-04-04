@@ -68,8 +68,11 @@ export async function onRequest(context) {
 
     // Handle HTML content for Hilla applications
     const contentType = response.headers.get('content-type') || '';
+    console.log(`Content-Type: ${contentType}`);
+    
     if (contentType.includes('text/html')) {
       const htmlContent = await response.text();
+      console.log(`HTML length: ${htmlContent.length}, path: ${pathname}`);
       const modifiedHtml = rewriteHtmlForQuantmind(htmlContent);
 
       return new Response(modifiedHtml, {
@@ -114,10 +117,15 @@ function rewriteHtmlForQuantmind(html) {
   );
 
   // Rewrite asset paths to include /quantmind/ prefix
-  // Handle src="/VAADIN/..." -> src="/quantmind/VAADIN/..."
+  // This handles all root-level paths: /VAADIN/, /icons/, /sw.js, /manifest.webmanifest
+  // And their subpaths: /icons/icon-16x16.png, /VAADIN/generated/vaadin.ts
   result = result.replace(
     /<(link|script|img)\s+[^>]*(?:src|href)="\/(VAADIN|icons)[^"]*"[^>]*>/gi,
     (match) => {
+      // Skip paths that already have /quantmind/ prefix
+      if (match.includes('/quantmind/')) return match;
+      // Rewrite /VAADIN/* -> /quantmind/VAADIN/*
+      // Rewrite /icons/* -> /quantmind/icons/*
       return match.replace(/"\/(VAADIN|icons)/g, '"/quantmind/$1');
     }
   );
