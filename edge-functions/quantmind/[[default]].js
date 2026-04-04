@@ -58,7 +58,7 @@ export async function onRequest(context) {
     newHeaders.set('x-edge-function', 'proxy');
     newHeaders.set('x-powered-by', 'EdgeOne Pages');
     newHeaders.set('x-backend-url', backendUrl.toString());
-    newHeaders.set('x-ef-handler', 'quantmind/[...path].js');
+    newHeaders.set('x-ef-handler', 'quantmind/[[default]].js');
     newHeaders.set('x-backend-service', 'quantmind');
 
     // Remove hop-by-hop headers from backend response
