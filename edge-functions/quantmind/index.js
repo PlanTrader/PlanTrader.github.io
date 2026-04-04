@@ -119,14 +119,19 @@ function rewriteHtmlForQuantmind(html) {
   // Rewrite asset paths to include /quantmind/ prefix
   // This handles all root-level paths: /VAADIN/, /icons/, /sw.js, /manifest.webmanifest
   // And their subpaths: /icons/icon-16x16.png, /VAADIN/generated/vaadin.ts
+  // Also handles relative paths: icons/, VAADIN/, sw.js, etc.
   result = result.replace(
-    /<(link|script|img)\s+[^>]*(?:src|href)="\/(VAADIN|icons)[^"]*"[^>]*>/gi,
-    (match) => {
+    /<(link|script|img)\s+[^>]*(?:src|href)="(\/?(VAADIN|icons|sw\.js|manifest\.webmanifest)[^"]*)"[^>]*>/gi,
+    (match, tag, fullPath, pathPart) => {
       // Skip paths that already have /quantmind/ prefix
       if (match.includes('/quantmind/')) return match;
-      // Rewrite /VAADIN/* -> /quantmind/VAADIN/*
-      // Rewrite /icons/* -> /quantmind/icons/*
-      return match.replace(/"\/(VAADIN|icons)/g, '"/quantmind/$1');
+      // If path is relative (starts without /), prepend /quantmind/
+      // If path is absolute (starts with /), rewrite /(VAADIN|icons|sw.js) -> /quantmind/$1
+      if (fullPath.startsWith('/')) {
+        return match.replace(/"\/(VAADIN|icons|sw\.js|manifest\.webmanifest)/g, '"/quantmind/$1');
+      } else {
+        return match.replace(/"(VAADIN|icons|sw\.js|manifest\.webmanifest)/g, '"/quantmind/$1');
+      }
     }
   );
 
