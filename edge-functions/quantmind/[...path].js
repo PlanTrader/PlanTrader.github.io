@@ -40,9 +40,6 @@ export async function onRequest(context) {
     requestHeaders.delete('keep-alive');
     requestHeaders.delete('transfer-encoding');
 
-    // Upgrade insecure requests for HTTPS
-    requestHeaders.delete('upgrade-insecure-requests');
-
     // Create the proxied request
     const proxyRequest = new Request(backendUrl, {
       method: request.method,
