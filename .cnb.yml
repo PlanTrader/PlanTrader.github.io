@@ -10,4 +10,4 @@ product:
         # 参考：https://www.npmjs.com/package/edgeone
         - name: Deploy to EdgeOne Pages
           image: node:20
-          script: npx edgeone pages deploy ./ -n plantrader -t $EDGEONE_API_TOKEN
+          script: npx edgeone pages deploy ./ -n plantrader2 -t $EDGEONE_API_TOKEN
