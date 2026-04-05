@@ -137,6 +137,42 @@ export async function onRequest(context) {
     requestHeaders.delete('keep-alive');
     requestHeaders.delete('transfer-encoding');
 
+    // 🔧 新增：防止后端域名泄漏的关键头部处理
+    // 1. Location — 最关键！重定向时要把后端域名替换为边缘节点域名
+    if (newHeaders.has('location')) {
+      const originalLocation = newHeaders.get('location');
+      try {
+        const backendUrlObj = new URL(originalLocation);
+        // 把后端域名替换为当前请求的域名
+        const currentOrigin = new URL(request.url).origin;
+        const rewrittenLocation = `${currentOrigin}${backendUrlObj.pathname}${backendUrlObj.search}`;
+        newHeaders.set('location', rewrittenLocation);
+        console.log(`[Proxy] Rewrote Location: ${originalLocation} → ${rewrittenLocation}`);
+      } catch (e) {
+        // 如果不是合法 URL，直接删除
+        newHeaders.delete('location');
+        console.warn('[Proxy] Removed invalid Location header:', originalLocation);
+      }
+    }
+
+    // 2. Content-Location — 同样需要重写或删除
+    if (newHeaders.has('content-location')) {
+      newHeaders.delete('content-location');
+    }
+
+    // 3. Set-Cookie — 域名可能绑定到后端（需更复杂处理，先删除）
+    // newHeaders.delete('set-cookie');  // ⚠️ 如果你需要 cookie，需要做 domain 重写
+
+    // 4. WWW-Authenticate — 删除，避免弹出后端域名的登录框
+    if (newHeaders.has('www-authenticate')) {
+      newHeaders.delete('www-authenticate');
+    }
+
+    // 5. Link header (rel=canonical 等)
+    if (newHeaders.has('link')) {
+      newHeaders.delete('link');
+    }
+
     // Create the proxied request
     const proxyRequest = new Request(backendUrl, {
       method: request.method,
