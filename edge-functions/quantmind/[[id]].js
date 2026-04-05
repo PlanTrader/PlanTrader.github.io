@@ -5,22 +5,25 @@
  * All requests are forwarded to the backend service running on CNB.
  */
 
-// Backend service URL
-const BACKEND_URL = 'https://45vxcidj0x-8080.cnb.run/';
+// Import functions from backendResolver
+import { resolveBackendUrl, markBackendUnhealthy } from './backendResolver';
 
 export async function onRequest(context) {
   const { request } = context;
 
   try {
+    // 1. Resolve the backend URL dynamically
+    const baseUrl = await resolveBackendUrl();
+
     // Get the request URL and path
     const url = new URL(request.url);
     const pathname = url.pathname;
     const search = url.search;
 
-    // Build the backend URL
-    // /quantmind/api/users -> /api/users
-    //const quantmindPath = pathname.replace(/^\/quantmind/, '') || '/';
-    const backendUrl = new URL(pathname + search, BACKEND_URL);
+    // 2. Build the backend URL using the resolved base URL
+    // Ensure baseUrl ends with / if pathname doesn't start with /, or handle accordingly
+    // Assuming baseUrl from config is like 'https://example.com/'
+    const backendUrl = new URL(pathname + search, baseUrl);
 
     // Copy the request body and headers
     const requestBody = request.body ? request.body : undefined;
@@ -41,7 +44,21 @@ export async function onRequest(context) {
     });
 
     // Forward the request to the backend
-    const response = await fetch(proxyRequest);
+    let response;
+    try {
+      response = await fetch(proxyRequest);
+      
+      // Optional: Mark unhealthy if backend returns 5xx errors
+      if (response.status >= 500) {
+        console.warn(`[Proxy] Backend returned status ${response.status}, marking unhealthy`);
+        markBackendUnhealthy();
+      }
+    } catch (fetchError) {
+      // Network error or DNS failure
+      console.error('[Proxy] Fetch failed, marking backend unhealthy:', fetchError.message);
+      markBackendUnhealthy();
+      throw fetchError; // Re-throw to be caught by the outer catch block
+    }
 
     // Create a new response with backend content
     const newHeaders = new Headers(response.headers);
