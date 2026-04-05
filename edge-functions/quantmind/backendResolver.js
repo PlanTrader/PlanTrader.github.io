@@ -5,11 +5,13 @@
 
 // 使用环境变量存储秘密和配置
 // 确保在部署平台中设置了这些变量
-const CNB_TOKEN = process.env.CNB_TOKEN; 
 const REPO = 'pt-config/config';
 const PATH = 'main/quantmind.json';
+const CNB_TOKEN = process.env.CNB_TOKEN || ''; // 从环境变量获取
 
 // 使用模板字符串正确构造 URL
+//const CONFIG_URL = `https://api.cnb.cool/${REPO}/-/git/raw/${PATH}`; 
+// ✅ 修复：使用反引号 ` 而不是单引号 '
 const CONFIG_URL = `https://api.cnb.cool/${REPO}/-/git/raw/${PATH}`; 
 
 // 状态变量
@@ -44,7 +46,7 @@ export async function resolveBackendUrl() {
     
     // 如果存在令牌，添加认证信息
     if (CNB_TOKEN) {
-        headers['Authorization'] = `Bearer ${CNB_TOKEN}`;
+        headers['Authorization'] = `${CNB_TOKEN}`;
     }
 
     const response = await fetch(CONFIG_URL, {
@@ -77,7 +79,8 @@ export async function resolveBackendUrl() {
       return cachedBackendUrl;
     }
     
-    throw new Error('No backend URL available and config fetch failed');
+    // ⚠️ 如果这里抛出错误，index.js 会捕获并返回 500
+    throw new Error(`Config fetch failed: ${error.message}`);
   }
 }
 
