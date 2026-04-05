@@ -12,8 +12,21 @@ export async function onRequest(context) {
   const { request } = context;
 
   try {
-    // 1. Resolve the backend URL dynamically
-    const baseUrl = await resolveBackendUrl();
+    // 1. 动态获取后端 URL
+    let baseUrl;
+    try {
+      baseUrl = await resolveBackendUrl();
+    } catch (configError) {
+      console.error('[Index] Failed to resolve backend URL:', configError.message);
+      // 返回更明确的错误，方便浏览器调试
+      return new Response(JSON.stringify({ 
+        error: 'Configuration Error', 
+        message: configError.message 
+      }), {
+        status: 503,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
 
     // Get the request URL and path
     const url = new URL(request.url);
