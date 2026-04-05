@@ -19,8 +19,8 @@ export async function onRequest(context) {
 
     // Build the backend URL
     // /quantmind/api/users -> /api/users
-    const quantmindPath = pathname.replace(/^\/quantmind/, '') || '/';
-    const backendUrl = new URL(quantmindPath + search, BACKEND_URL);
+    //const quantmindPath = pathname.replace(/^\/quantmind/, '') || '/';
+    const backendUrl = new URL(pathname + search, BACKEND_URL);
 
     // Copy the request body and headers
     const requestBody = request.body ? request.body : undefined;
