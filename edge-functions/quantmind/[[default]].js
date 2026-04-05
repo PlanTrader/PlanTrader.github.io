@@ -67,7 +67,7 @@ export async function onRequest(context) {
     newHeaders.set('x-edge-function', 'proxy');
     newHeaders.set('x-powered-by', 'EdgeOne Pages');
     newHeaders.set('x-backend-url', backendUrl.toString());
-    newHeaders.set('x-ef-handler', '[[id]].js');
+    newHeaders.set('x-ef-handler', '[[default]].js');
 
     // Remove hop-by-hop headers from backend response
     newHeaders.delete('connection');
