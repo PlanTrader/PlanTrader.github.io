@@ -16,7 +16,6 @@
 // 确保在部署平台中设置了这些变量
 const REPO = 'pt-config/config';
 const PATH = 'main/quantmind.json';
-const CNB_TOKEN = process.env.CNB_TOKEN || ''; // 从环境变量获取
 
 // 使用模板字符串正确构造 URL
 //const CONFIG_URL = `https://api.cnb.cool/${REPO}/-/git/raw/${PATH}`; 
@@ -31,6 +30,7 @@ const REFRESH_COOLDOWN = 5000;
 
 export async function resolveBackendUrl() {
   const now = Date.now();
+  const CNB_TOKEN = env?.CNB_TOKEN || ''; // 从环境变量获取
 
   // 场景 1：健康的缓存命中
   if (cachedBackendUrl && isHealthy) {
@@ -60,8 +60,7 @@ export async function resolveBackendUrl() {
 
     const response = await fetch(CONFIG_URL, {
       method: 'GET',
-      headers: headers,
-      cf: { cacheTtl: 0 } 
+      headers: headers
     });
 
     if (!response.ok) {

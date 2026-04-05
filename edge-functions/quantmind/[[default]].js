@@ -7,11 +7,15 @@
 
 // Import functions from backendResolver
 //import { resolveBackendUrl, markBackendUnhealthy } from './backendResolver';
+/**
+ * backendResolver.js
+ * 管理带有缓存和故障转移逻辑的后端 URL 解析。
+ */
+
 // 使用环境变量存储秘密和配置
 // 确保在部署平台中设置了这些变量
 const REPO = 'pt-config/config';
 const PATH = 'main/quantmind.json';
-const CNB_TOKEN = process.env.CNB_TOKEN || ''; // 从环境变量获取
 
 // 使用模板字符串正确构造 URL
 //const CONFIG_URL = `https://api.cnb.cool/${REPO}/-/git/raw/${PATH}`; 
@@ -26,6 +30,7 @@ const REFRESH_COOLDOWN = 5000;
 
 export async function resolveBackendUrl() {
   const now = Date.now();
+  const CNB_TOKEN = env?.CNB_TOKEN || ''; // 从环境变量获取
 
   // 场景 1：健康的缓存命中
   if (cachedBackendUrl && isHealthy) {
@@ -55,8 +60,7 @@ export async function resolveBackendUrl() {
 
     const response = await fetch(CONFIG_URL, {
       method: 'GET',
-      headers: headers,
-      cf: { cacheTtl: 0 } 
+      headers: headers
     });
 
     if (!response.ok) {
@@ -97,8 +101,21 @@ export async function onRequest(context) {
   const { request } = context;
 
   try {
-    // 1. Resolve the backend URL dynamically
-    const baseUrl = await resolveBackendUrl();
+    // 1. 动态获取后端 URL
+    let baseUrl;
+    try {
+      baseUrl = await resolveBackendUrl();
+    } catch (configError) {
+      console.error('[Index] Failed to resolve backend URL:', configError.message);
+      // 返回更明确的错误，方便浏览器调试
+      return new Response(JSON.stringify({ 
+        error: 'Configuration Error', 
+        message: configError.message 
+      }), {
+        status: 503,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
 
     // Get the request URL and path
     const url = new URL(request.url);
